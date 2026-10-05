@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}</style>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: blob:; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
 <title>PDD 2026 Planner</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}</style>
 <style>
 /* Layout: header, plan panel, filters, then a sticky view bar over the agenda. Each time block: time rail left, session cards right. */
 :root{
@@ -448,7 +448,7 @@ const plural=(n,w)=>n+' '+w+(n===1?'':'s');
 const short=t=>t.length>52?t.slice(0,50)+'\u2026':t;
 
 /* ---------- flatten ---------- */
-const CARDS=[],BLOCKS=[],byId={},byBlock={},used=new Set();
+const CARDS=[],BLOCKS=[],byId=Object.create(null),byBlock=Object.create(null),used=new Set();
 DAYS.forEach(d=>{
   let bi=0;
   d.rows.forEach(r=>{
@@ -523,8 +523,8 @@ let sel={};
 const state={view:'agenda',sf:'all',tracks:new Set()};
 
 function cleanSel(o){
-  const out={},seenP={};
-  Object.keys(o||{}).forEach(id=>{
+  const out=Object.create(null),seenP=Object.create(null);
+  Object.keys(o&&typeof o==='object'?o:{}).forEach(id=>{
     const c=byId[id],v=o[id];
     if(!c||c.fixed||(v!=='p'&&v!=='a'))return;
     if(v==='p'){ if(seenP[c.block]){out[id]='a';return;} seenP[c.block]=1; }
@@ -564,14 +564,15 @@ function makeCode(){
   return AGENDA_VERSION+'.'+P.join('-')+'.'+A.join('-');
 }
 function decodeCode(txt){
-  let t=String(txt||'').trim();
+  let t=String(txt||'').trim().slice(0,2000);
   const m=t.match(/picks=([0-9.\-]*)/);
   if(m)t=m[1];
   const parts=t.split('.');
   if(parts.length!==3||!/^\d+$/.test(parts[0]))return {error:'That does not look like a share code or link.'};
   if(+parts[0]!==AGENDA_VERSION)return {error:'That code was made for a different version of the agenda.'};
   const list=s=>s?s.split('-').map(Number):[];
-  const o={};
+  const o=Object.create(null);
+  if(parts[1].length>1500||parts[2].length>1500)return {error:'That code is too long.'};
   for(const n of list(parts[1])){if(!CARDS[n])return {error:'That code does not match this agenda.'};o[CARDS[n].id]='p';}
   for(const n of list(parts[2])){if(!CARDS[n])return {error:'That code does not match this agenda.'};if(!o[CARDS[n].id])o[CARDS[n].id]='a';}
   return {sel:cleanSel(o)};
