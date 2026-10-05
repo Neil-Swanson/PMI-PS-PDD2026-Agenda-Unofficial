@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}</style>
+<title>PDD 2026 Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: header, plan panel, filters, then a sticky view bar over the agenda. Each time block: time rail left, session cards right. */
+:root{
+  --font-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+
+  --bg:#f3f6f8; --surface:#ffffff; --line:#d5dde4; --fg:#16202a; --muted:#546270; --on-fg:#f3f6f8;
+  --warn-bg:#fff4d6; --warn-fg:#6b4a00; --warn-line:#ecd48f;
+
+  --found-bg:#e4ecf8; --found-fg:#21426b;
+  --ai-bg:#e2f3ea;    --ai-fg:#1a5a3f;
+  --lead-bg:#f6e6f0;  --lead-fg:#7a2a5b;
+  --pmo-bg:#fbeed8;   --pmo-fg:#74460a;
+  --agile-bg:#ebe7f8; --agile-fg:#4a3a98;
+  --chg-bg:#fbe6e0;   --chg-fg:#88301d;
+  --mil-bg:#eaece3;   --mil-fg:#4a4f37;
+  --event-bg:#e6eaee; --event-fg:#2c3641;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f151b; --surface:#17202a; --line:#2b3744; --fg:#e8edf2; --muted:#9aa8b6; --on-fg:#0f151b;
+    --warn-bg:#3a3012; --warn-fg:#f0d98a; --warn-line:#5c4c1d;
+    --found-bg:#1c2a40; --found-fg:#a9c4ee;
+    --ai-bg:#173326;    --ai-fg:#9fd8bb;
+    --lead-bg:#3a1f31;  --lead-fg:#eab0d3;
+    --pmo-bg:#3a2c14;   --pmo-fg:#efc88a;
+    --agile-bg:#2a2547; --agile-fg:#c4b8f2;
+    --chg-bg:#3d221b;   --chg-fg:#f0b3a2;
+    --mil-bg:#2a2d22;   --mil-fg:#c6cbb0;
+    --event-bg:#2a3038; --event-fg:#c6ccd4;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --surface:#17202a; --line:#2b3744; --fg:#e8edf2; --muted:#9aa8b6; --on-fg:#0f151b;
+  --warn-bg:#3a3012; --warn-fg:#f0d98a; --warn-line:#5c4c1d;
+  --found-bg:#1c2a40; --found-fg:#a9c4ee;
+  --ai-bg:#173326;    --ai-fg:#9fd8bb;
+  --lead-bg:#3a1f31;  --lead-fg:#eab0d3;
+  --pmo-bg:#3a2c14;   --pmo-fg:#efc88a;
+  --agile-bg:#2a2547; --agile-fg:#c4b8f2;
+  --chg-bg:#3d221b;   --chg-fg:#f0b3a2;
+  --mil-bg:#2a2d22;   --mil-fg:#c6cbb0;
+  --event-bg:#2a3038; --event-fg:#c6ccd4;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:.9375rem;line-height:1.45;padding-block:0 3rem}
+.wrap{width:100%;max-width:78rem;margin-inline:auto;padding-inline:1rem}
+h1,h2,h3,h4,p,ul{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+button:disabled{opacity:.45;cursor:not-allowed}
+
+.t-found{background:var(--found-bg);color:var(--found-fg)}
+.t-ai{background:var(--ai-bg);color:var(--ai-fg)}
+.t-lead{background:var(--lead-bg);color:var(--lead-fg)}
+.t-pmo{background:var(--pmo-bg);color:var(--pmo-fg)}
+.t-agile{background:var(--agile-bg);color:var(--agile-fg)}
+.t-chg{background:var(--chg-bg);color:var(--chg-fg)}
+.t-mil{background:var(--mil-bg);color:var(--mil-fg)}
+.t-event{background:var(--event-bg);color:var(--event-fg)}
+
+/* Header */
+.head{padding-block:1.5rem 1rem;display:flex;flex-direction:column;gap:.5rem}
+.eyebrow{font:500 .75rem var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--font-display);font-weight:800;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.05;letter-spacing:-.01em;text-wrap:balance}
+.lede{color:var(--muted);max-width:44rem;text-wrap:pretty}
+
+.banner{background:var(--event-bg);color:var(--event-fg);border:1px solid var(--line);border-radius:6px;padding:.6rem .8rem;margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:.5rem .75rem;align-items:center;font-size:.88rem}
+
+/* Plan panel */
+.plan{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.75rem;margin-bottom:1rem}
+.plan-top{display:flex;flex-wrap:wrap;gap:.25rem 1rem;align-items:baseline}
+h2.h-sm{font-family:var(--font-display);font-weight:800;font-size:1.05rem}
+.plan-sum{color:var(--muted);font-size:.88rem}
+.how{display:flex;flex-wrap:wrap;gap:.3rem 1.25rem;font-size:.84rem;color:var(--muted)}
+.how b{color:var(--fg);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.row-label{font:500 .7rem var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:.25rem}
+.tog{border:1px solid var(--fg);background:var(--surface);border-radius:4px;padding:.35rem .7rem;font-size:.8rem;font-weight:600}
+.tog[aria-pressed="true"]{background:var(--fg);color:var(--on-fg)}
+.tog.plain{border-color:var(--line);color:var(--muted);font-weight:500}
+.tog.solid{background:var(--fg);color:var(--on-fg)}
+.share-row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.share-row label{font:500 .7rem var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);min-width:4.2rem}
+.share-row input,.import-box input,.ics-box textarea{flex:1 1 14rem;min-width:0;font:400 .8rem var(--font-mono);padding:.4rem .5rem;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg)}
+.ics-box textarea{width:100%;min-height:7rem}
+.import-box{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.msg{font-size:.82rem;color:var(--muted);width:100%}
+details summary{cursor:pointer;font-size:.84rem;color:var(--muted)}
+.issues{background:var(--warn-bg);color:var(--warn-fg);border:1px solid var(--warn-line);border-radius:6px;padding:.55rem .75rem;font-size:.85rem}
+.issues ul{padding-left:1.1rem;display:flex;flex-direction:column;gap:.2rem}
+.issues b{font-weight:600}
+.issues.good{background:var(--event-bg);color:var(--event-fg);border-color:var(--line)}
+
+/* Filters */
+.controls{display:flex;flex-direction:column;gap:.6rem;padding-block:.25rem 1rem}
+.fchip{border:0;border-radius:4px;padding:.3rem .6rem;font-size:.78rem;font-weight:600;line-height:1.2}
+.fchip[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--fg)}
+.fchip[aria-pressed="true"]::before{content:"\2713\00a0"}
+.count{font:400 .78rem var(--font-mono);color:var(--muted)}
+
+/* Sticky bar */
+.seg{display:inline-flex}
+.seg button{background:var(--surface);border:1px solid var(--line);padding:.35rem .8rem;font-weight:600;font-size:.84rem}
+.seg button:first-child{border-radius:4px 0 0 4px}
+.seg button:last-child{border-radius:0 4px 4px 0}
+.seg button+button{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--on-fg);border-color:var(--fg)}
+.seg.sm button{font-size:.78rem;padding:.3rem .65rem;font-weight:500}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-block:1px solid var(--line)}
+.bar-in{display:flex;flex-wrap:wrap;gap:.5rem 1rem;align-items:center;padding-block:.5rem}
+.sum{font:400 .78rem var(--font-mono);color:var(--muted);margin-left:auto}
+
+/* Day */
+.day{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 3.5rem);padding-block:1.75rem 0}
+.day-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:.25rem 1rem;margin-bottom:.75rem}
+h2.day-h{font-family:var(--font-display);font-weight:800;font-size:1.9rem;letter-spacing:-.01em}
+.date{font:500 .9rem var(--font-mono);color:var(--muted)}
+.fair{display:flex;flex-wrap:wrap;gap:.2rem .75rem;align-items:baseline;padding:.6rem .8rem;border:1px solid var(--line);background:var(--surface);border-radius:6px;font-size:.85rem;margin-bottom:.5rem}
+.fair b{font-weight:600}
+.fair .hrs{font-family:var(--font-mono);font-size:.8rem}
+
+/* Time blocks */
+.block,.ms{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:1rem;border-top:1px solid var(--line)}
+.block{padding-block:1.1rem}
+.ms{padding-block:.7rem;align-items:baseline}
+.rail{display:flex;flex-direction:column;gap:.1rem;align-self:start}
+.rail .time,.ms .time{font:600 1.05rem var(--font-mono);font-variant-numeric:tabular-nums}
+.ms .time{font-size:.85rem;font-weight:500;color:var(--muted)}
+.rail .lab{font-size:.8rem;font-weight:600}
+.rail .cnt{font:400 .72rem var(--font-mono);color:var(--muted)}
+.status{font:400 .72rem var(--font-mono);color:var(--muted)}
+.status.ok{color:var(--fg);font-weight:600}
+.status.ok::before{content:"\2713\00a0"}
+@media (min-width:720px){
+  .rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 3.75rem)}
+}
+@media (max-width:719px){
+  .block,.ms{grid-template-columns:minmax(0,1fr);gap:.4rem}
+  .rail{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:.15rem .75rem}
+}
+.body{display:flex;flex-direction:column;gap:.75rem;min-width:0}
+.ms-body{display:flex;flex-wrap:wrap;gap:.2rem .75rem;align-items:baseline;min-width:0}
+.ms-title{font-weight:500}
+.ms-room{font:400 .78rem var(--font-mono);color:var(--muted)}
+.ms-wrap{display:flex;flex-direction:column;gap:.5rem;min-width:0}
+
+.note{background:var(--warn-bg);color:var(--warn-fg);border:1px solid var(--warn-line);border-radius:6px;padding:.5rem .7rem;font-size:.84rem}
+.note b{font-weight:600;margin-right:.35rem}
+.nopick{border:1px dashed var(--line);border-radius:6px;padding:.7rem .8rem;color:var(--muted);font-size:.85rem}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,15.5rem),1fr));gap:.75rem}
+.card{display:flex;flex-direction:column;gap:.15rem;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:.7rem .8rem}
+.card.is-p{border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+.card.is-a{border-style:dashed;border-color:var(--fg)}
+.card-top{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center}
+.chip{font-size:.68rem;font-weight:600;padding:.15rem .45rem;border-radius:4px;line-height:1.25}
+.card h4{font-size:.95rem;line-height:1.3;font-weight:600;margin-top:.45rem;text-wrap:pretty}
+.who{color:var(--muted);font-size:.84rem}
+.vet{margin-left:.25rem;color:var(--fg)}
+.meta{display:flex;flex-wrap:wrap;gap:.1rem .75rem;margin-top:.45rem;font:400 .74rem var(--font-mono);color:var(--muted)}
+.sel{display:flex;gap:.4rem;margin-top:auto;padding-top:.7rem}
+.sel-btn{flex:1;border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:.4rem .5rem;font-size:.78rem;font-weight:600}
+.sel-btn:hover{border-color:var(--fg)}
+.sel-btn[aria-pressed="true"]::before{content:"\2713\00a0"}
+.sel-btn[data-kind="p"][aria-pressed="true"]{background:var(--fg);color:var(--on-fg);border-color:var(--fg)}
+.sel-btn[data-kind="a"][aria-pressed="true"]{background:var(--event-bg);color:var(--fg);border:1px dashed var(--fg)}
+
+.foot{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--line);color:var(--muted);font-size:.82rem;display:flex;flex-direction:column;gap:.35rem;max-width:46rem}
+.foot a{color:var(--fg)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 1rem);background:var(--fg);color:var(--on-fg);padding:.6rem .9rem;border-radius:6px;font-size:.85rem;z-index:20;max-width:min(28rem,calc(100% - 2rem))}
+@media print{
+  .bar,.controls,.plan .row,.plan details,.sel,.banner,.toast,.how{display:none!important}
+  .card{break-inside:avoid}
+  .block,.ms{break-inside:avoid}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="head">
+    <p class="eyebrow">PMI Puget Sound Chapter &middot; Seattle University, Pigott Building</p>
+    <h1>Professional Development Days 2026</h1>
+    <p class="lede">Plan your two days. Choose one Primary session for each time block and as many Alternates as you like. Your picks are saved on this device, and you can share them with a link. This is an unofficial planner built from the published agenda.</p>
+  </header>
+
+  <div class="banner" id="banner" hidden>
+    <span id="bannerText"></span>
+    <button type="button" class="tog solid" id="bannerYes">Replace my picks</button>
+    <button type="button" class="tog plain" id="bannerNo">Keep mine</button>
+  </div>
+
+  <section class="plan" aria-labelledby="planH">
+    <div class="plan-top">
+      <h2 class="h-sm" id="planH">Your plan</h2>
+      <p class="plan-sum" id="planSum"></p>
+    </div>
+    <p class="how"><span><b>Primary</b>: your first choice for a time block. One per block.</span><span><b>Alternate</b>: backups you would consider. As many as you want.</span></p>
+    <div class="row">
+      <button type="button" class="tog solid" id="shareBtn">Share link</button>
+      <button type="button" class="tog" id="icsBtn">Add to calendar</button>
+      <button type="button" class="tog" id="exBtn">Load an example plan</button>
+      <button type="button" class="tog plain" id="importBtn" aria-expanded="false" aria-controls="importBox">Import picks</button>
+      <button type="button" class="tog plain" id="resetBtn">Clear all picks</button>
+      <label class="row-label" for="icsAlt"><input type="checkbox" id="icsAlt"> Include Alternates in calendar</label>
+    </div>
+    <div id="shareOut" hidden>
+      <div class="share-row"><label for="shareLink">Link</label><input id="shareLink" type="text" readonly><button type="button" class="tog plain" data-copy="shareLink">Copy</button></div>
+      <div class="share-row"><label for="shareCode">Code</label><input id="shareCode" type="text" readonly><button type="button" class="tog plain" data-copy="shareCode">Copy</button></div>
+    </div>
+    <div class="import-box" id="importBox" hidden>
+      <input id="importIn" type="text" placeholder="Paste a share link or code">
+      <button type="button" class="tog solid" id="importGo">Apply</button>
+      <p class="msg" id="importMsg"></p>
+    </div>
+    <details id="icsFallback" class="ics-box" hidden>
+      <summary>Download did not start? Copy the calendar text instead</summary>
+      <textarea id="icsText" readonly aria-label="Calendar file text"></textarea>
+    </details>
+    <div id="issues" class="issues" hidden></div>
+  </section>
+
+  <section class="controls" aria-label="Filters">
+    <div class="row" role="group" aria-label="Filter by track" id="trackChips"><span class="row-label">Track</span></div>
+    <div class="row" id="sfRow">
+      <span class="row-label">Show</span>
+      <div class="seg sm" role="group" aria-label="Filter by selection">
+        <button type="button" data-sf="all" aria-pressed="true">All</button>
+        <button type="button" data-sf="p" aria-pressed="false">Primary</button>
+        <button type="button" data-sf="a" aria-pressed="false">Alternate</button>
+        <button type="button" data-sf="none" aria-pressed="false">Unselected</button>
+      </div>
+    </div>
+    <div class="row">
+      <button type="button" class="tog plain" id="clearBtn">Clear filters</button>
+      <span class="count" id="count" aria-live="polite"></span>
+    </div>
+  </section>
+</div>
+
+<nav class="bar" aria-label="View and day">
+  <div class="wrap bar-in">
+    <div class="seg" role="group" aria-label="View">
+      <button type="button" id="viewAgenda" aria-pressed="true">Full agenda</button>
+      <button type="button" id="viewMine" aria-pressed="false">My schedule</button>
+    </div>
+    <div class="seg" role="group" aria-label="Jump to day">
+      <button type="button" data-jump="day-fri" aria-pressed="false">Friday</button>
+      <button type="button" data-jump="day-sat" aria-pressed="false">Saturday</button>
+    </div>
+    <span class="sum" id="barSum"></span>
+  </div>
+</nav>
+
+<main class="wrap" id="app"></main>
+
+<div class="wrap">
+  <footer class="foot">
+    <p>To print or save a PDF of your plan, switch to My schedule and use your browser's print command.</p>
+    <p>Only some sessions list an end time. Overlap checks use listed end times, and 90-minute workshops count as 90 minutes. Calendar events without a listed end time are set to 60 minutes.</p>
+    <p>Rooms for several Military Outreach sessions were still being confirmed, and the agenda can change. Always check the official agenda: <a href="https://pugetsoundpmi.starchapter.com/meetinginfo.php?id=1011">PMI Puget Sound Chapter</a>. Agenda read October 5, 2026.</p>
+  </footer>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+const AGENDA_VERSION=1;
+const STORE_KEY='pdd2026.planner.v1';
+const TRACKS={
+  found:'PM & CAPM Foundations',
+  ai:'AI & Digital Transformation',
+  lead:'Leadership & Career Development',
+  pmo:'PMO & Portfolio',
+  agile:'Agile & Project Execution',
+  chg:'Change Management',
+  mil:'Military Outreach',
+  event:'Keynotes, panels, events'
+};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const S=(tr,t,sp,room,o={})=>({tr:[].concat(tr),t,sp,room,...o});
+const ms=(time,title,room,o={})=>({k:'ms',time,title,room,...o});
+const blk=(time,label,items,o={})=>({k:'b',time,label,items,...o});
+const W='90-min workshop';
+
+/* Agenda data. Bump AGENDA_VERSION when sessions are added, removed or reordered, so old share codes are rejected. */
+const DAYS=[
+{id:'fri',name:'Friday',date:'October 9, 2026',iso:'20261009',fair:'1:00 PM to 7:00 PM',lunch:['11:30','12:10'],rows:[
+  ms(`8:00 AM`,`Registration opens, coffee and networking`,`PACCAR Atrium`),
+  ms(`8:30 AM`,`Welcome and opening remarks`,``),
+  blk(`9:00 AM`,`Opening keynote`,[
+    S('event',`Be the Transformation`,`Rebecca P. Murray`,`Pigott Auditorium`,{lab:'Keynote'})
+  ]),
+  blk(`10:15 AM`,`Morning session and workshop`,[
+    S('lead',`Funded, Not Furloughed: Using Unemployment Benefits and SEAP to Launch Your PM Career or Consultancy`,`Tricia Diamond, Ph.D.`,`Pigott Auditorium`,{st:'10:15',en:'11:15'}),
+    S('lead',`Rise Above Routine`,`Darren Mann`,`Student Center 130`,{st:'10:15',en:'11:45',fmt:W})
+  ]),
+  ms(`11:30 AM`,`Lunch and networking`,`Student Center 160 and 130`,{warn:`Only 40 minutes until the 12:10 breakouts, and lunch is in the Student Center while the breakouts are in Pigott.`}),
+  blk(`12:10 PM`,`Early breakout block`,[
+    S('found',`Passing the PMP in the AI Era: PMBOK 8, AI Tools, and a First-Attempt Study Plan`,`Ibrahim Traore`,`Pigott 108`),
+    S('lead',`Your Career Is a Portfolio: Applying Portfolio Management to Your Own Growth`,`Valerie Amponsah`,`Pigott 203`)
+  ]),
+  ms(`1:00 PM`,`Career Fair and sponsor exhibition open`,`PACCAR Atrium`),
+  blk(`2:15 PM`,`Breakout Block 1`,[
+    S('ai',`Managing Visible and Invisible Uncertainty in AI-Enabled Agile Delivery`,`Dr. Serhiy Kovela`,`Pigott 203`,{fmt:W}),
+    S('pmo',`Beyond the Project Plan: Building TRUE Teams That Deliver`,`Phyllis Berger`,`Pigott 108`),
+    S('found',`PM Ready`,`Ibrahim Traore`,`Pigott 102`),
+    S('lead',`Scapegoat or Secret Agent: Operation Credible Dates!`,`Sreeraj Menon`,`Pigott 103`),
+    S('ai',`Information Manager to Transformation Leader`,`Rajshekhar Chatterjee`,`Pigott 106`),
+    S('lead',`The SAFE Compass: Leading Teams Through VUCA Conditions`,`Lisa Power`,`Pigott 205`),
+    S('ai',`Terminators Alert! AI versus PI (Personal Intelligence)`,`Banu Raghuraman`,`Student Center 130`),
+    S('lead',`Leading Without Authority in Complex, Matrixed Organizations`,`Megan Thornton`,`Student Center 160`),
+    S('mil',`Military Session`,`Jay Hyler`,`Student Center 210`),
+    S('event',`College PM Bowl, Preliminary Rounds`,`Manisha Sharma, program manager, with a 28-volunteer case committee`,`Sinegal 100 and Sinegal 110`,{lab:'College PM Bowl',st:'14:00',en:'16:00',ab:true,ns:true})
+  ]),
+  blk(`3:45 PM`,`Breakout Block 2`,[
+    S('chg',`Are You a Commander? A Cheerleader? A Carer? Or a Critical Thinker? Unlocking the People Puzzle in Your Projects`,`Nigel Smith`,`Pigott 203`,{fmt:W}),
+    S('mil',`Military to Project Management`,`Coming soon`,`Pigott 108`),
+    S(['lead','mil'],`From Service to Project Leadership: The ADAPT Framework for Navigating Change`,`Juan Nieves`,`Pigott 102`,{vet:true}),
+    S('ai',`AI Can't Do It Alone: Process First, AI Second`,`Gavin Bartlett`,`Pigott 103`,{fmt:W}),
+    S('pmo',`From Fragmentation to Enterprise Standard: Building PM Frameworks That Scale`,`Pavani Totli Kuruba`,`Casey Commons`),
+    S('ai',`Building Trust in AI Applications`,`Rena A. Cummings`,`Pigott 205`),
+    S('lead',`Leading Beyond the Plan: Human-Centered Leadership in the Age of AI`,`Illyasha \u201cIlly\u201d Peete`,`Pigott 202`),
+    S('found',`Avoiding Surprises by Identifying and Prioritizing Non-Critical Path Schedule Delays`,`Niall McShane`,`Pigott 106`),
+    S('mil',`Military Session`,`Jay Hyler`,`Student Center 130`),
+    S('agile',`Agile Where It Shouldn't Work: A Working Session on Delivering Agile in Constrained Project Environments`,`Dr. Stella Hua`,`Student Center 160`,{fmt:W}),
+    S('event',`College PM Bowl, Final Round`,``,`Sinegal 100`,{lab:'College PM Bowl',st:'16:15',en:'17:10',ab:true,ns:true})
+  ],{warn:`A 90-minute workshop that started at 2:15 ends exactly as this block starts, with no time to change rooms.`}),
+  ms(`5:15 PM`,`College PM Bowl winner announced`,`Sinegal 100`),
+  ms(`5:30 PM`,`Evening reception with sponsors, speakers, employers and attendees. Career Fair stays open.`,``),
+  ms(`7:00 PM`,`Day one concludes`,``)
+]},
+{id:'sat',name:'Saturday',date:'October 10, 2026',iso:'20261010',fair:'7:00 AM to 4:00 PM',lunch:['12:00','13:00'],rows:[
+  ms(`7:00 AM`,`Registration, breakfast and networking. Career Services tables open.`,``),
+  ms(`8:30 AM`,`Welcome and opening ceremony`,``),
+  blk(`9:00 AM`,`Morning keynote`,[
+    S('event',`Why Project Managers Matter More in the Age of AI`,`Jake Hammock, Chief Information Security Officer and former Assistant CTO, City of Seattle`,`Pigott Auditorium`,{lab:'Keynote',vet:true})
+  ]),
+  blk(`10:15 AM`,`Session Block 1`,[
+    S('pmo',`Value-Driven Transformation: Turning Strategy into Measurable Impact`,`Dr. Pitchiah \u201cDr. Pitch\u201d Balasubramanian`,`Pigott Auditorium`,{st:'10:15',en:'11:15'}),
+    S('found',`The Reckoning: Triage, Focus, and Ending Work in the Age of Infinite Backlogs`,`Ivan Schneider`,`Pigott 203`,{st:'10:20',en:'11:50',fmt:W}),
+    S('lead',`Lead with Stories: Engaging Stakeholders to Drive Project Outcomes`,`Kevin Lavering`,`Pigott 108`,{st:'10:20',en:'11:50',fmt:W}),
+    S('ai',`Why AI Projects Stall: Readiness, Governance, and Adoption Beyond the Pilot`,`Favour Orji`,`Pigott 102`,{st:'10:20',en:'11:20'}),
+    S('lead',`Point of View: Your Lens, Your Leap`,`Mallika Manjunath`,`Pigott 103`,{st:'10:20',en:'11:20'}),
+    S('chg',`Change Management Is Not a Phase: Integrating PM and CM from Charter to Close`,`Jahzeel Ormeno`,`Pigott 106`,{st:'10:20',en:'11:20'}),
+    S('lead',`Leading in Two Directions: Keep Your Team on Track and Your Manager in the Know`,`Barbara Jenks`,`Pigott 205`,{st:'10:20',en:'11:20'}),
+    S('ai',`The Hidden Cost of Intelligence: Balancing AI Innovation with Environmental and Racial Equity`,`Tricia Diamond, Ph.D.`,`Sinegal 100`,{st:'10:20',en:'11:20'}),
+    S('mil',`Military to Project Management`,`Coming soon`,`Pigott 204`,{st:'10:20',en:'11:20'}),
+    S('event',`PMO Roundtable, Session 1`,`Jay Bakst, Alan Dienst, Susan Thomas, Tod Bookless, Tracie Killgrove`,`Pigott 200`,{lab:'Roundtable',st:'10:15',en:'11:45'})
+  ],{warn:`Sinegal 100 is a separate building from Pigott.`}),
+  ms(`12:00 PM`,`Lunch and networking`,``,{warn:`A good window for the Career Fair, which closes at 4:00 PM.`}),
+  blk(`1:00 PM`,`Afternoon keynote`,[
+    S('event',`From PMO to AI-Powered Transformation Office`,`Bill Dow, ITS PMO Director, University of Washington`,`Pigott Auditorium`,{lab:'Keynote'})
+  ]),
+  blk(`2:10 PM`,`Session Block 2`,[
+    S('ai',`Behind the Mask of Agentic AI: What Project Managers Need to Know`,`Dan Baldwin`,`Pigott 203`),
+    S('lead',`Laid Off Twice: Finding Your Portable Value When the Title Disappears`,`Oluwakanyinsola (Kanyinsola) Adebayo`,`Pigott 108`),
+    S('found',`Polaris: Modernizing a Thirty-Year-Old System as a Business Transformation, Not an IT Project`,`Sayee Vaitheesvaran`,`Pigott Auditorium`),
+    S('chg',`Off the Pavement: Finding the AI Your Team Is Already Using`,`Anna Echols`,`Pigott 102`),
+    S('lead',`What Has Toastmasters Ever Done for Me?`,`Nigel Smith`,`Pigott 103`),
+    S('lead',`The Space You Create: How One Leader's Presence Shapes an Organization`,`Ethan Fryer-Ressmeyer`,`Pigott 106`),
+    S('chg',`Gamifying PMI Concepts: Learning, Team Building, and Trust Through Play`,`Greg Lindsley`,`Pigott 205`),
+    S('agile',`The Gorilla in the Room: A Field Guide to the Friction No One's Naming`,`Joel Bancroft-Connors`,`Pigott 202`),
+    S('mil',`Military to Project Management`,`Coming soon`,`Pigott 204`),
+    S('lead',`Mind The Gap. Are you equipped to navigate across cultures?`,`Lizzie Lee`,`Sinegal 100`),
+    S('found',`Passing the PMP in the AI Era: PMBOK 8, AI Tools, and a First-Attempt Study Plan`,`Ibrahim Traore`,`Sinegal 110`),
+    S('event',`PMO Roundtable, Session 2`,`Same facilitators as Session 1`,`Pigott 200`,{lab:'Roundtable',st:'14:15',en:'15:45'})
+  ],{warn:`PMO Roundtable Session 2 runs until 3:45, so it overlaps the start of Session Block 3.`}),
+  blk(`3:20 PM`,`Session Block 3`,[
+    S('chg',`From Chaos to Culture Change: Leading Organizational Transformation Under Crisis`,`Tricia Diamond, Ph.D.`,`Pigott 203`),
+    S('event',`Share Your Story: A First-Time Author's Journey`,`Kevin Lavering, moderator, with Bill Dow, Valerie Amponsah, Lizzie Lee and Dr. Serhiy Kovela`,`Pigott Auditorium`,{lab:'Featured Panel'}),
+    S('lead',`From Group to Team: Culture, Listening, and the Work of Building a Team`,`Andrea Holtan`,`Pigott 102`),
+    S('lead',`Slide Less, Know More: Avoiding Death by PowerPoint!`,`Nigel Smith`,`Pigott 108`),
+    S('ai',`Be the Transformation: Leading AI Programs That Actually Deliver`,`Nagendra Krishna Ramachandran`,`Pigott 106`),
+    S('lead',`You Don't Need to Start in PM`,`Omasan \u201cOma\u201d Ayonronmi`,`Pigott 205`),
+    S('ai',`Logistics to Strategic Partnership, an AI Journey`,`Banu Raghuraman`,`Pigott 202`),
+    S('mil',`Military to Project Management`,`Coming soon`,`Sinegal 100`),
+    S('mil',`Military to Project Management`,`Coming soon`,`Sinegal 110`),
+    S('mil',`Military to Project Management`,`Coming soon`,`Pigott 204`)
+  ],{warn:`The Career Fair closes at 4:00 PM, partway through this block.`}),
+  ms(`4:00 PM`,`Career Fair closes`,`PACCAR Atrium`),
+  blk(`4:25 PM`,`Community of Practice meetups`,[
+    S('event',`AI`,`Rena Cummings`,`Pigott 304`,{lab:'Meetup',st:'16:25',en:'17:05'}),
+    S('event',`PMO & Portfolio Management`,`Kevin Lavering`,`Pigott 305`,{lab:'Meetup',st:'16:25',en:'17:05'}),
+    S('event',`Agile`,`Jeff Crowl and Adonis Kalalang`,`Pigott 306`,{lab:'Meetup',st:'16:25',en:'17:05'}),
+    S('event',`Government & Public Sector`,`Sayee Vaitheesvaran`,`Pigott 307`,{lab:'Meetup',st:'16:25',en:'17:05'}),
+    S('event',`Consultants & Independent Practitioners`,`Tricia Diamond, Ph.D.`,`Pigott 308`,{lab:'Meetup',st:'16:25',en:'17:05'}),
+    S('event',`Early Career & Career Transition`,`Career Services Team`,`Pigott 309`,{lab:'Meetup',st:'16:25',en:'17:05'})
+  ]),
+  ms(`5:15 PM`,`Closing: raffle, thank-yous and announcements`,`PACCAR Atrium`),
+  ms(`6:00 PM`,`Conference concludes`,``)
+]}
+];
+
+/* Example plan for the "Load an example plan" button: [day, title prefix, kind] */
+const EXAMPLE=[
+  ['fri','Be the Transformation','p'],['fri','Rise Above Routine','p'],['fri','Your Career Is a Portfolio','p'],
+  ['fri','Leading Without Authority','p'],['fri',"AI Can't Do It Alone",'p'],
+  ['sat','Why Project Managers Matter','p'],['sat','The Hidden Cost','p'],['sat','From PMO to AI-Powered','p'],
+  ['sat','Polaris','p'],['sat','Logistics to Strategic','p'],['sat','AI','p'],
+  ['fri','Funded, Not Furloughed','a'],['fri','Passing the PMP','a'],['fri','Information Manager','a'],
+  ['fri','From Fragmentation','a'],['sat','Why AI Projects Stall','a'],['sat','Behind the Mask','a'],
+  ['sat',"You Don't Need",'a'],['sat','Be the Transformation: Leading AI','a'],['sat','Government & Public','a']
+];
+
+/* ---------- time helpers ---------- */
+const toMin=s=>{const p=s.split(':');return +p[0]*60+ +p[1];};
+const parseDisp=s=>{const m=s.match(/(\d+):(\d+)\s*(AM|PM)/);let h=(+m[1])%12;if(m[3]==='PM')h+=12;return h*60+(+m[2]);};
+const t12=m=>{let h=Math.floor(m/60);const mm=m%60,ap=h>=12?'PM':'AM';h=h%12||12;return{s:h+':'+String(mm).padStart(2,'0'),ap};};
+const rangeText=(st,en,ab)=>{const a=t12(st),b=t12(en);return (ab?'about ':'')+a.s+(a.ap!==b.ap?' '+a.ap:'')+' to '+b.s+' '+b.ap;};
+const hhmm=m=>String(Math.floor(m/60)).padStart(2,'0')+String(m%60).padStart(2,'0');
+const slug=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+const plural=(n,w)=>n+' '+w+(n===1?'':'s');
+const short=t=>t.length>52?t.slice(0,50)+'\u2026':t;
+
+/* ---------- flatten ---------- */
+const CARDS=[],BLOCKS=[],byId={},byBlock={},used=new Set();
+DAYS.forEach(d=>{
+  let bi=0;
+  d.rows.forEach(r=>{
+    if(r.k!=='b')return;
+    r.key=d.id+'-'+bi++;
+    const bstart=parseDisp(r.time);
+    const bslug=r.time.toLowerCase().replace(/[^a-z0-9]/g,'');
+    const block={key:r.key,day:d.id,label:r.label,cards:r.items};
+    BLOCKS.push(block);byBlock[r.key]=block;
+    r.items.forEach(s=>{
+      s.day=d.id;s.block=r.key;
+      s.start=s.st?toMin(s.st):bstart;
+      s.end=s.en?toMin(s.en):(s.fmt===W?s.start+90:null);
+      s.time=(s.st&&s.en)?rangeText(toMin(s.st),toMin(s.en),s.ab):'';
+      let id=d.id+'-'+bslug+'-'+slug(s.t).slice(0,48);
+      if(used.has(id))id+='-'+slug(s.room);
+      while(used.has(id))id+='-x';
+      used.add(id);s.id=id;s.idx=CARDS.length;
+      CARDS.push(s);byId[id]=s;
+    });
+  });
+});
+
+/* ---------- rendering ---------- */
+function cardHTML(s){
+  const chips=s.tr.map((t,i)=>`<span class="chip t-${t}">${esc((i===0&&s.lab)?s.lab:TRACKS[t])}</span>`).join('');
+  const meta=[s.room,s.time,s.fmt].filter(Boolean).map(m=>`<span>${esc(m)}</span>`).join('');
+  const who=s.sp?`<p class="who">${esc(s.sp)}${s.vet?'<span class="vet" title="Military veteran" aria-label="Military veteran">&#9733;</span>':''}</p>`:'';
+  const t=esc(s.t);
+  return `<article class="card" data-tr="${s.tr.join(' ')}">
+    <div class="card-top">${chips}</div>
+    <h4>${t}</h4>${who}
+    <p class="meta">${meta}</p>
+    <div class="sel" role="group" aria-label="Plan this session">
+      <button type="button" class="sel-btn" data-kind="p" aria-pressed="false" aria-label="Primary pick: ${t}">Primary</button>
+      <button type="button" class="sel-btn" data-kind="a" aria-pressed="false" aria-label="Alternate pick: ${t}">Alternate</button>
+    </div>
+  </article>`;
+}
+function rowHTML(r){
+  const warn=r.warn?`<p class="note"><b>Heads up</b>${esc(r.warn)}</p>`:'';
+  if(r.k==='ms'){
+    const room=r.room?`<span class="ms-room">${esc(r.room)}</span>`:'';
+    return `<div class="ms"><div class="time">${esc(r.time)}</div>
+      <div class="ms-wrap"><div class="ms-body"><span class="ms-title">${esc(r.title)}</span>${room}</div>${warn}</div></div>`;
+  }
+  const n=r.items.filter(i=>!i.ns).length;
+  const cnt=n>1?`<span class="cnt">${n} sessions at once</span>`:'';
+  return `<div class="block">
+    <div class="rail"><span class="time">${esc(r.time)}</span><h3 class="lab">${esc(r.label)}</h3>${cnt}<span class="status"></span></div>
+    <div class="body">${warn}<p class="nopick" hidden>Nothing chosen for this block yet.</p><div class="cards">${r.items.map(cardHTML).join('')}</div></div>
+  </div>`;
+}
+const app=document.getElementById('app');
+app.innerHTML=DAYS.map(d=>`
+  <section class="day" id="day-${d.id}">
+    <div class="day-head"><h2 class="day-h">${d.name}</h2><span class="date">${d.date}</span></div>
+    <div class="fair"><b>Career Fair, PACCAR Atrium</b><span class="hrs">open ${d.fair}</span><span>Resume review, mentors, employer tables, headshots</span></div>
+    ${d.rows.map(rowHTML).join('')}
+  </section>`).join('');
+{
+  const els=app.querySelectorAll('.card');
+  CARDS.forEach((c,i)=>{c.el=els[i];c.el.dataset.id=c.id;});
+  const bels=app.querySelectorAll('.block');
+  BLOCKS.forEach((b,i)=>{b.el=bels[i];b.status=bels[i].querySelector('.status');b.nopick=bels[i].querySelector('.nopick');});
+}
+
+/* ---------- state ---------- */
+let sel={};
+const state={view:'agenda',sf:'all',tracks:new Set()};
+
+function cleanSel(o){
+  const out={},seenP={};
+  Object.keys(o||{}).forEach(id=>{
+    const c=byId[id],v=o[id];
+    if(!c||(v!=='p'&&v!=='a'))return;
+    if(v==='p'){ if(seenP[c.block]){out[id]='a';return;} seenP[c.block]=1; }
+    out[id]=v;
+  });
+  return out;
+}
+function loadSel(){try{const r=localStorage.getItem(STORE_KEY);if(r)return cleanSel(JSON.parse(r));}catch(e){}return {};}
+function saveSel(){try{localStorage.setItem(STORE_KEY,JSON.stringify(sel));}catch(e){}}
+sel=loadSel();
+
+let tt;
+function toast(m){const el=document.getElementById('toast');el.textContent=m;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{el.hidden=true;},4500);}
+
+function setSel(id,kind){
+  const c=byId[id],cur=sel[id];
+  if(cur===kind){delete sel[id];}
+  else{
+    if(kind==='p'){
+      const other=byBlock[c.block].cards.find(x=>x!==c&&sel[x.id]==='p');
+      if(other){sel[other.id]='a';toast('"'+short(other.t)+'" moved to Alternate. Each time block has one Primary.');}
+    }
+    sel[id]=kind;
+  }
+  saveSel();refresh();
+}
+app.addEventListener('click',e=>{
+  const b=e.target.closest('.sel-btn');
+  if(!b)return;
+  setSel(b.closest('.card').dataset.id,b.dataset.kind);
+});
+
+/* ---------- share codes ---------- */
+function makeCode(){
+  const P=[],A=[];
+  CARDS.forEach(c=>{const v=sel[c.id];if(v==='p')P.push(c.idx);else if(v==='a')A.push(c.idx);});
+  return AGENDA_VERSION+'.'+P.join('-')+'.'+A.join('-');
+}
+function decodeCode(txt){
+  let t=String(txt||'').trim();
+  const m=t.match(/picks=([0-9.\-]*)/);
+  if(m)t=m[1];
+  const parts=t.split('.');
+  if(parts.length!==3||!/^\d+$/.test(parts[0]))return {error:'That does not look like a share code or link.'};
+  if(+parts[0]!==AGENDA_VERSION)return {error:'That code was made for a different version of the agenda.'};
+  const list=s=>s?s.split('-').map(Number):[];
+  const o={};
+  for(const n of list(parts[1])){if(!CARDS[n])return {error:'That code does not match this agenda.'};o[CARDS[n].id]='p';}
+  for(const n of list(parts[2])){if(!CARDS[n])return {error:'That code does not match this agenda.'};if(!o[CARDS[n].id])o[CARDS[n].id]='a';}
+  return {sel:cleanSel(o)};
+}
+function shareLink(){
+  let base=location.href.split('#')[0];
+  return base+'#picks='+makeCode();
+}
+function copyText(id){
+  const el=document.getElementById(id);
+  el.focus();el.select();
+  const done=ok=>toast(ok?'Copied.':'Press Ctrl+C or Cmd+C to copy the selected text.');
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(el.value).then(()=>done(true),()=>done(false));}
+    else done(false);
+  }catch(e){done(false);}
+}
+
+/* ---------- calendar export ---------- */
+function icsEsc(s){return String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');}
+function fold(line){
+  const out=[];let s=line;
+  while(s.length>73){out.push(s.slice(0,73));s=' '+s.slice(73);}
+  out.push(s);return out;
+}
+function buildICS(includeAlt){
+  const now=new Date();
+  const p=n=>String(n).padStart(2,'0');
+  const stamp=now.getUTCFullYear()+p(now.getUTCMonth()+1)+p(now.getUTCDate())+'T'+p(now.getUTCHours())+p(now.getUTCMinutes())+p(now.getUTCSeconds())+'Z';
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//PDD 2026 Planner//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:PDD 2026'];
+  let n=0;
+  CARDS.forEach(c=>{
+    const v=sel[c.id];
+    if(v!=='p'&&!(includeAlt&&v==='a'))return;
+    const d=DAYS.find(x=>x.id===c.day);
+    const end=c.end!=null?c.end:c.start+60;
+    const desc=[c.sp?'Speaker: '+c.sp:'',TRACKS[c.tr[0]],c.end==null?'End time is not listed in the agenda. 60 minutes assumed.':'','Agenda: https://pugetsoundpmi.starchapter.com/meetinginfo.php?id=1011'].filter(Boolean).join('\n');
+    lines.push('BEGIN:VEVENT','UID:'+c.id+'@pdd2026-planner','DTSTAMP:'+stamp,
+      'DTSTART:'+d.iso+'T'+hhmm(c.start)+'00','DTEND:'+d.iso+'T'+hhmm(end)+'00',
+      ...fold('SUMMARY:'+icsEsc((v==='a'?'(Alternate) ':'')+c.t)),
+      ...fold('LOCATION:'+icsEsc(c.room+', Seattle University, 901 12th Avenue, Seattle, WA')),
+      ...fold('DESCRIPTION:'+icsEsc(desc)),
+      'STATUS:'+(v==='a'?'TENTATIVE':'CONFIRMED'),'END:VEVENT');
+    n++;
+  });
+  lines.push('END:VCALENDAR');
+  return {text:lines.join('\r\n')+'\r\n',count:n};
+}
+
+/* ---------- schedule check ---------- */
+function computeIssues(){
+  const issues=[];
+  DAYS.forEach(d=>{
+    const P=CARDS.filter(c=>c.day===d.id&&sel[c.id]==='p').sort((a,b)=>a.start-b.start||a.idx-b.idx);
+    for(let i=0;i<P.length;i++){
+      const a=P[i];
+      if(a.end==null)continue;
+      for(let j=i+1;j<P.length;j++){
+        const b=P[j];
+        if(b.start<a.end){
+          issues.push('<b>'+d.name+':</b> '+esc(short(a.t))+' overlaps '+esc(short(b.t))+' by '+plural(Math.min(a.end,b.end==null?a.end:b.end)-b.start,'minute')+'.');
+        }
+      }
+      const next=P[i+1];
+      if(next&&next.start>=a.end){
+        const gap=next.start-a.end;
+        if(gap<=5&&a.room!==next.room){
+          issues.push('<b>'+d.name+':</b> '+(gap===0?'No time to change rooms':'Only '+plural(gap,'minute')+' to change rooms')+' between '+esc(short(a.t))+' ('+esc(a.room)+') and '+esc(short(next.t))+' ('+esc(next.room)+').');
+        }
+      }
+      const ls=toMin(d.lunch[0]),le=toMin(d.lunch[1]);
+      if(a.start<le&&a.end>ls){
+        issues.push('<b>'+d.name+':</b> '+esc(short(a.t))+' runs into lunch.');
+      }
+    }
+  });
+  return issues;
+}
+function renderIssues(np,na){
+  const el=document.getElementById('issues');
+  if(np+na===0){el.hidden=true;return;}
+  const issues=computeIssues();
+  el.hidden=false;
+  if(issues.length){
+    el.className='issues';
+    el.innerHTML='<b>Schedule check</b><ul>'+issues.map(i=>'<li>'+i+'</li>').join('')+'</ul>';
+  }else{
+    el.className='issues good';
+    el.innerHTML=np?'<b>Schedule check</b> No overlaps or tight room changes among your Primary picks.':'<b>Schedule check</b> Choose a Primary for each time block to check for overlaps.';
+  }
+}
+
+/* ---------- refresh and filters ---------- */
+function refresh(){
+  CARDS.forEach(c=>{
+    const v=sel[c.id]||'';
+    c.el.classList.toggle('is-p',v==='p');
+    c.el.classList.toggle('is-a',v==='a');
+    c.el.querySelector('[data-kind="p"]').setAttribute('aria-pressed',v==='p'?'true':'false');
+    c.el.querySelector('[data-kind="a"]').setAttribute('aria-pressed',v==='a'?'true':'false');
+  });
+  let np=0,na=0;
+  BLOCKS.forEach(b=>{
+    const hasP=b.cards.some(c=>sel[c.id]==='p');
+    const a=b.cards.filter(c=>sel[c.id]==='a').length;
+    b.hasSel=hasP||a>0;
+    if(hasP)np++;
+    na+=a;
+    b.status.classList.toggle('ok',hasP);
+    b.status.textContent=(hasP?'Primary set':'No Primary yet')+(a?' \u00b7 '+plural(a,'Alternate'):'');
+  });
+  const total=np+na;
+  document.getElementById('planSum').textContent=total===0
+    ?'No picks yet. Choose sessions below, or load an example plan.'
+    :np+' Primary, '+plural(na,'Alternate')+'. A Primary is set in '+np+' of '+BLOCKS.length+' time blocks.';
+  document.getElementById('barSum').textContent=total===0?'No picks yet':np+' Primary \u00b7 '+na+' Alt';
+  document.getElementById('exBtn').hidden=total>0;
+  document.getElementById('resetBtn').disabled=total===0;
+  document.getElementById('shareBtn').disabled=total===0;
+  document.getElementById('icsBtn').disabled=total===0;
+  renderIssues(np,na);
+  applyFilters();
+}
+function applyFilters(){
+  const tracking=state.tracks.size>0;
+  const mine=state.view==='mine';
+  let shown=0,all=0;
+  CARDS.forEach(c=>{
+    all++;
+    const v=sel[c.id]||'';
+    const trOk=!tracking||c.tr.some(t=>state.tracks.has(t));
+    let selOk;
+    if(mine)selOk=!!v;
+    else selOk=state.sf==='all'||(state.sf==='p'&&v==='p')||(state.sf==='a'&&v==='a')||(state.sf==='none'&&!v);
+    const ok=trOk&&selOk;
+    c.el.hidden=!ok;
+    if(ok)shown++;
+  });
+  BLOCKS.forEach(b=>{
+    const vis=b.cards.some(c=>!c.el.hidden);
+    if(mine&&!tracking){
+      b.el.hidden=false;
+      b.nopick.hidden=b.hasSel;
+    }else{
+      b.el.hidden=!vis;
+      b.nopick.hidden=true;
+    }
+    b.el.querySelector('.cards').hidden=!vis;
+  });
+  const anyFilter=tracking||(!mine&&state.sf!=='all');
+  document.querySelectorAll('.ms').forEach(m=>{m.hidden=anyFilter;});
+  document.getElementById('sfRow').hidden=mine;
+  document.getElementById('viewAgenda').setAttribute('aria-pressed',mine?'false':'true');
+  document.getElementById('viewMine').setAttribute('aria-pressed',mine?'true':'false');
+  document.querySelectorAll('[data-sf]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.sf===state.sf?'true':'false'));
+  document.querySelectorAll('.fchip').forEach(b=>b.setAttribute('aria-pressed',state.tracks.has(b.dataset.track)?'true':'false'));
+  document.getElementById('count').textContent=(anyFilter||mine)?'Showing '+shown+' of '+all+' listings':all+' listings across both days';
+}
+
+/* ---------- controls ---------- */
+const chipsEl=document.getElementById('trackChips');
+Object.keys(TRACKS).forEach(k=>{
+  const b=document.createElement('button');
+  b.type='button';b.className='fchip t-'+k;b.dataset.track=k;b.setAttribute('aria-pressed','false');
+  b.textContent=TRACKS[k];
+  b.addEventListener('click',()=>{state.tracks.has(k)?state.tracks.delete(k):state.tracks.add(k);applyFilters();});
+  chipsEl.appendChild(b);
+});
+document.querySelectorAll('[data-sf]').forEach(b=>b.addEventListener('click',()=>{state.sf=b.dataset.sf;applyFilters();}));
+document.getElementById('clearBtn').addEventListener('click',()=>{state.tracks.clear();state.sf='all';applyFilters();});
+document.getElementById('viewAgenda').addEventListener('click',()=>{state.view='agenda';applyFilters();});
+document.getElementById('viewMine').addEventListener('click',()=>{state.view='mine';applyFilters();});
+document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>{
+  const el=document.getElementById(b.dataset.jump);
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(el)el.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});
+}));
+
+/* plan actions */
+document.getElementById('shareBtn').addEventListener('click',()=>{
+  document.getElementById('shareLink').value=shareLink();
+  document.getElementById('shareCode').value=makeCode();
+  document.getElementById('shareOut').hidden=false;
+  copyText('shareLink');
+});
+document.querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click',()=>copyText(b.dataset.copy)));
+document.getElementById('icsBtn').addEventListener('click',()=>{
+  const r=buildICS(document.getElementById('icsAlt').checked);
+  if(!r.count){toast('Pick at least one session first.');return;}
+  document.getElementById('icsText').value=r.text;
+  document.getElementById('icsFallback').hidden=false;
+  try{
+    const blob=new Blob([r.text],{type:'text/calendar'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='pdd-2026-plan.ics';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+  }catch(e){}
+  toast(plural(r.count,'event')+' ready. Open the downloaded file to add them to your calendar.');
+});
+document.getElementById('exBtn').addEventListener('click',()=>{
+  const o={};
+  EXAMPLE.forEach(x=>{
+    const c=CARDS.find(c=>c.day===x[0]&&(c.t===x[1]||(x[1]!=='AI'&&c.t.indexOf(x[1])===0)));
+    if(c)o[c.id]=x[2];
+  });
+  sel=cleanSel(o);saveSel();refresh();
+  toast('Example plan loaded. Change it or clear it any time.');
+});
+const importBtn=document.getElementById('importBtn'),importBox=document.getElementById('importBox');
+importBtn.addEventListener('click',()=>{
+  const open=importBox.hidden;
+  importBox.hidden=!open;
+  importBtn.setAttribute('aria-expanded',open?'true':'false');
+  if(open)document.getElementById('importIn').focus();
+});
+document.getElementById('importGo').addEventListener('click',()=>{
+  const msg=document.getElementById('importMsg');
+  const r=decodeCode(document.getElementById('importIn').value);
+  if(r.error){msg.textContent=r.error;return;}
+  sel=r.sel;saveSel();refresh();
+  msg.textContent='';
+  document.getElementById('importIn').value='';
+  importBox.hidden=true;importBtn.setAttribute('aria-expanded','false');
+  toast('Picks imported.');
+});
+const resetBtn=document.getElementById('resetBtn');
+let rt;
+function disarm(){clearTimeout(rt);delete resetBtn.dataset.armed;resetBtn.textContent='Clear all picks';}
+resetBtn.addEventListener('click',()=>{
+  if(resetBtn.dataset.armed){sel={};saveSel();refresh();disarm();toast('All picks cleared.');}
+  else{resetBtn.dataset.armed='1';resetBtn.textContent='Click again to clear all picks';rt=setTimeout(disarm,4000);}
+});
+
+/* opening a shared link */
+(function(){
+  let m=null;
+  try{m=location.hash.match(/picks=([0-9.\-]*)/);}catch(e){}
+  if(!m)return;
+  const r=decodeCode(m[1]);
+  try{history.replaceState(null,'',location.href.split('#')[0]);}catch(e){}
+  if(r.error){toast(r.error);return;}
+  const n=Object.keys(r.sel).length;
+  if(Object.keys(sel).length===0){sel=r.sel;saveSel();toast('Shared schedule loaded: '+plural(n,'pick')+'. It is now saved as yours.');return;}
+  const banner=document.getElementById('banner');
+  document.getElementById('bannerText').textContent='This link has a shared schedule with '+plural(n,'pick')+'. Replace your current picks with it?';
+  banner.hidden=false;
+  document.getElementById('bannerYes').addEventListener('click',()=>{sel=r.sel;saveSel();refresh();banner.hidden=true;toast('Shared schedule loaded.');});
+  document.getElementById('bannerNo').addEventListener('click',()=>{banner.hidden=true;});
+})();
+
+refresh();
+</script>
+
+</body>
+</html>
