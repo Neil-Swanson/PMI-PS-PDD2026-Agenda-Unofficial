@@ -738,6 +738,11 @@ function applyFilters(){
       b.nopick.hidden=true;
     }
     b.el.querySelector('.cards').hidden=!vis;
+    /* In My schedule, show the Primary first, then Alternates; otherwise restore agenda order. */
+    const rank=c=>mine?(sel[c.id]==='p'?0:sel[c.id]==='a'?1:2):0;
+    const want=b.cards.map((c,i)=>[rank(c),i,c]).sort((x,y)=>x[0]-y[0]||x[1]-y[1]).map(x=>x[2]);
+    const box=b.el.querySelector('.cards');
+    if(want.some((c,i)=>box.children[i]!==c.el))want.forEach(c=>box.appendChild(c.el));
   });
   const anyFilter=tracking||(!mine&&state.sf!=='all');
   document.getElementById('sfRow').hidden=mine;
